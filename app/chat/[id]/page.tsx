@@ -14,10 +14,13 @@ export const metadata: Metadata = {
 
 export default async function ChatPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ prompt?: string }>;
 }) {
   const { id } = await params;
+  const { prompt } = await searchParams;
 
   const user = await findOrCreateUser();
   if (!user) {
@@ -36,7 +39,7 @@ export default async function ChatPage({
 
   return (
     <main className="flex flex-1 flex-col">
-      <Chat id={id} userId={user.id} initialMessages={messages} />
+      <Chat id={id} userId={user.id} initialMessages={messages} initialPrompt={prompt} />
     </main>
   );
 }

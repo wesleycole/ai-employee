@@ -19,15 +19,17 @@ interface ChatProps {
   id: string;
   userId: string;
   initialMessages?: UIMessage[];
+  initialPrompt?: string;
 }
 
-export default function Chat({ id, userId, initialMessages = [] }: ChatProps) {
+export default function Chat({ id, userId, initialMessages = [], initialPrompt }: ChatProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [hasAddedThread, setHasAddedThread] = useState(false);
   const { addThread, updateThreadTitle } = useThreads();
+  const hasSentInitialPrompt = useRef(false);
 
   const isFirstMessageRef = useRef(initialMessages.length === 0);
 
@@ -84,6 +86,13 @@ export default function Chat({ id, userId, initialMessages = [] }: ChatProps) {
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
     }
   }, [input]);
+
+  useEffect(() => {
+    if (initialPrompt && !hasSentInitialPrompt.current && initialMessages.length === 0) {
+      hasSentInitialPrompt.current = true;
+      sendMessage({ text: initialPrompt });
+    }
+  }, [initialPrompt, sendMessage, initialMessages.length]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
