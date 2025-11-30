@@ -1,11 +1,17 @@
 import { generateText } from "ai";
+import { auth } from "@clerk/nextjs/server";
 import { updateThreadTitle } from "@/lib/chat-store";
 
 export async function POST(req: Request) {
-  const { threadId, userId, message }: { threadId: string; userId: string; message: string } =
+  const { userId } = await auth();
+  if (!userId) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  const { threadId, message }: { threadId: string; message: string } =
     await req.json();
 
-  if (!threadId || !userId || !message) {
+  if (!threadId || !message) {
     return new Response("Missing required fields", { status: 400 });
   }
 

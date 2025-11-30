@@ -6,19 +6,23 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
 } from "ai";
+import { auth } from "@clerk/nextjs/server";
 import { saveChat, updateThreadTitle } from "@/lib/chat-store";
 import { generateTitle } from "@/lib/generate-title";
 
 export async function POST(req: Request) {
+  const { userId } = await auth();
+  if (!userId) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const {
     messages,
     chatId,
-    userId,
     isFirstMessage,
   }: {
     messages: UIMessage[];
     chatId: string;
-    userId?: string;
     isFirstMessage?: boolean;
   } = await req.json();
 
@@ -39,7 +43,7 @@ export async function POST(req: Request) {
           onFinish: async ({ messages: finalMessages }) => {
             await saveChat({ chatId, messages: finalMessages });
 
-            if (isFirstMessage && userId) {
+            if (isFirstMessage) {
               const firstUserMessage = messages.find((m) => m.role === "user");
               if (firstUserMessage) {
                 const textPart = firstUserMessage.parts.find(

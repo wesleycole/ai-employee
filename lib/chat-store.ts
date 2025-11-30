@@ -1,8 +1,7 @@
 "use server";
 
 import { generateId, type UIMessage } from "ai";
-
-const WORKER_URL = process.env.WORKER_URL || "http://localhost:8787";
+import { workerFetch } from "./worker-client";
 
 interface StoredMessage {
   id: string;
@@ -18,7 +17,7 @@ export async function createChat(): Promise<string> {
 }
 
 export async function loadChat(id: string): Promise<UIMessage[]> {
-  const response = await fetch(`${WORKER_URL}/threads/${id}`);
+  const response = await workerFetch(`/threads/${id}`);
   if (!response.ok) {
     if (response.status === 404) {
       return [];
@@ -49,9 +48,8 @@ export async function saveChat({
     metadata: msg.metadata,
   }));
 
-  const response = await fetch(`${WORKER_URL}/threads/${chatId}`, {
+  const response = await workerFetch(`/threads/${chatId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(serializedMessages),
   });
 
@@ -72,9 +70,8 @@ export async function appendMessage(
     metadata: message.metadata,
   };
 
-  const response = await fetch(`${WORKER_URL}/threads/${chatId}`, {
+  const response = await workerFetch(`/threads/${chatId}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(serializedMessage),
   });
 
@@ -84,7 +81,7 @@ export async function appendMessage(
 }
 
 export async function clearChat(chatId: string): Promise<void> {
-  const response = await fetch(`${WORKER_URL}/threads/${chatId}`, {
+  const response = await workerFetch(`/threads/${chatId}`, {
     method: "DELETE",
   });
 
@@ -98,14 +95,10 @@ export async function updateThreadTitle(
   threadId: string,
   title: string
 ): Promise<void> {
-  const response = await fetch(
-    `${WORKER_URL}/users/${userId}/threads/${threadId}`,
-    {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title }),
-    }
-  );
+  const response = await workerFetch(`/users/${userId}/threads/${threadId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  });
 
   if (!response.ok) {
     throw new Error(`Failed to update thread title: ${response.statusText}`);

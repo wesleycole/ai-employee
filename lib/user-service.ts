@@ -1,8 +1,7 @@
 "use server";
 
 import { currentUser } from "@clerk/nextjs/server";
-
-const WORKER_URL = process.env.WORKER_URL || "http://localhost:8787";
+import { workerFetch } from "./worker-client";
 
 export interface User {
   id: string;
@@ -26,9 +25,8 @@ export async function findOrCreateUser(): Promise<User | null> {
     return null;
   }
 
-  const response = await fetch(`${WORKER_URL}/users`, {
+  const response = await workerFetch("/users", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       id: clerkUser.id,
       email: clerkUser.emailAddresses[0]?.emailAddress || "",
@@ -44,7 +42,7 @@ export async function findOrCreateUser(): Promise<User | null> {
 }
 
 export async function getUserThreads(userId: string): Promise<Thread[]> {
-  const response = await fetch(`${WORKER_URL}/users/${userId}/threads`);
+  const response = await workerFetch(`/users/${userId}/threads`);
   if (!response.ok) {
     if (response.status === 404) {
       return [];
@@ -59,9 +57,8 @@ export async function createThread(
   threadId: string,
   title?: string
 ): Promise<Thread> {
-  const response = await fetch(`${WORKER_URL}/users/${userId}/threads`, {
+  const response = await workerFetch(`/users/${userId}/threads`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id: threadId, title }),
   });
 
@@ -76,9 +73,7 @@ export async function verifyThreadOwnership(
   userId: string,
   threadId: string
 ): Promise<boolean> {
-  const response = await fetch(
-    `${WORKER_URL}/users/${userId}/threads/${threadId}`
-  );
+  const response = await workerFetch(`/users/${userId}/threads/${threadId}`);
   return response.ok;
 }
 
@@ -87,14 +82,10 @@ export async function updateThreadTitle(
   threadId: string,
   title: string
 ): Promise<void> {
-  const response = await fetch(
-    `${WORKER_URL}/users/${userId}/threads/${threadId}`,
-    {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title }),
-    }
-  );
+  const response = await workerFetch(`/users/${userId}/threads/${threadId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  });
 
   if (!response.ok) {
     throw new Error(`Failed to update thread title: ${response.statusText}`);

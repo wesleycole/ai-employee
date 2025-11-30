@@ -1,3 +1,4 @@
+import { verifyToken } from '@clerk/backend';
 import type { ThreadMessage } from './thread';
 export { Thread, type ThreadMessage } from './thread';
 
@@ -12,10 +13,33 @@ interface ThreadInput {
   title?: string | null;
 }
 
+async function authenticate(request: Request, env: Env): Promise<{ userId: string } | null> {
+  const authHeader = request.headers.get('Authorization');
+  const token = authHeader?.replace('Bearer ', '');
+
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const payload = await verifyToken(token, {
+      secretKey: env.CLERK_SECRET_KEY,
+    });
+    return { userId: payload.sub };
+  } catch {
+    return null;
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
+
+    const auth = await authenticate(request, env);
+    if (!auth) {
+      return new Response('Unauthorized', { status: 401 });
+    }
 
     // User endpoints: POST /users (find or create)
     if (pathParts[0] === 'users' && pathParts.length === 1 && request.method === 'POST') {
